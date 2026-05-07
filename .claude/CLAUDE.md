@@ -1,4 +1,4 @@
-# Continuous Claude v4
+# Continuous Claude v4.7
 
 Autonomous software development pipeline. Skills orchestrate; workers build; the project improves with every task.
 
@@ -7,6 +7,7 @@ Autonomous software development pipeline. Skills orchestrate; workers build; the
 | Skill | What it does |
 |-------|-------------|
 | `/autonomous` | Full SDLC: assess, plan, premortem, prepare, execute, validate, evolve |
+| `/autonomous-research` | Looping research pipeline — hypotheses deepen via Ouros sessions, artifacts flow back |
 | `/research` | Open-ended exploration via Ouros REPL with persistent state |
 | `/premortem` | Failure analysis gate — risk identification before implementation |
 | `/bootup` | Assess project readiness, route to research/autonomous/review |
@@ -24,15 +25,19 @@ Autonomous software development pipeline. Skills orchestrate; workers build; the
 
 ## Hooks
 
-Three hooks form a context safety loop (wired in `.claude/settings.json`):
+All hooks are plain `.mjs` ES modules (Node.js — no build step). Wired in `.claude/settings.json`.
 
 | Hook | Event | What it does |
 |------|-------|-------------|
-| `status.py` | statusLine | Status line: context %, git info, goal from latest handoff |
-| `pre-compact.py` | PreCompact | Parses transcript, writes auto-handoff before compaction |
-| `auto-handoff-stop.py` | Stop | Blocks at 85% context, suggests `/create_handoff` |
+| `status.mjs` | statusLine | Context %, git branch, staged/unstaged counts, goal from latest handoff |
+| `tldr-read.mjs` | PreToolUse:Read | Injects structural nav map for large code files, truncates to save tokens (silent fallthrough if `tldr` missing) |
+| `post-edit-diagnostics.mjs` | PostToolUse:Edit\|Write\|MultiEdit\|Update | Runs type checker + linter after edits for immediate feedback |
+| `pre-compact.mjs` | PreCompact | Parses transcript, writes auto-handoff YAML before compaction |
+| `auto-handoff-stop.mjs` | Stop | Blocks at 85% context, suggests `/create-handoff` before data loss |
 
-Flow: status tracks context % (writes to temp file) -> stop reads it and blocks at threshold -> pre-compact saves session state before compaction.
+A PreToolUse `fastedit-hook` command also redirects `Edit|MultiEdit|Update` to FastEdit if it's installed (silent fallthrough otherwise).
+
+Context-safety flow: status tracks context % → stop reads it and blocks at threshold → pre-compact saves session state before compaction.
 
 ## Sandbox
 
